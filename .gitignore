@@ -40,5 +40,5 @@
 # debug information files
 *.dwo
 
-Project_01_RSA-20251029T133015Z-1-001
 *.pdf
+.vscode
