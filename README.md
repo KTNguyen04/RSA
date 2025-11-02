@@ -6,12 +6,11 @@ A C++ library for manipulating large base-2 integers (exceeding 64 bits), design
 
 - C++17
 - g++13
-- CMake 3.22 or higher
 
 # Usage
 
 ```sh
-g++ -g ./main.cpp ./BigIntMod.cpp -o main
+g++ -g ./main.cpp ./BigIntMod.cpp ./RSA.cpp  -o main
 ./main
 ```
 

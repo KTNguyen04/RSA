@@ -13,6 +13,7 @@ class BigIntMod
 {
     deque<int64_t> bits; // most significant bit to least significant bit
     bool sign_;
+    friend class RSA;
 
 public:
     BigIntMod();
@@ -31,6 +32,7 @@ public:
 
     friend BigIntMod pow(const BigIntMod &, const BigIntMod &);
     friend BigIntMod pow(const BigIntMod &, const int);
+    friend BigIntMod mul2(const BigIntMod &);
 
     friend BigIntMod operator+(const BigIntMod &, const BigIntMod &);
     friend BigIntMod operator-(const BigIntMod &, const BigIntMod &);

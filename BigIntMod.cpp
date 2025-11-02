@@ -190,41 +190,47 @@ BigIntMod &BigIntMod::operator-=(const BigIntMod &i_val)
 
 BigIntMod &BigIntMod::operator*=(const BigIntMod &i_val)
 {
+    // handle sign
     BigIntMod ret;
-    if (this->sign_ == i_val.sign_)
-        ret.sign_ = true;
-    else
-        ret.sign_ = false;
-    for (deque<int64_t>::size_type i = 0; i < bits.size(); ++i)
+    ret.sign_ = (this->sign_ == i_val.sign_);
+
+    size_t n = bits.size();
+    size_t m = i_val.bits.size();
+    if (n == 0 || m == 0)
     {
-        for (std::deque<int64_t>::size_type j = 0; j < i_val.bits.size(); ++j)
+        *this = ZERO;
+        return *this;
+    }
+
+    ret.bits.assign(n + m, 0); // allocate result bits
+
+    // Convolution in base 2 (bits)
+    for (size_t i = 0; i < n; ++i)
+    {
+        if (bits[i] == 0)
+            continue;
+        for (size_t j = 0; j < m; ++j)
         {
-            if (i + j < ret.bits.size())
-            {
-                ret.bits[i + j] += bits[i] * i_val.bits[j];
-            }
-            else
-            {
-                ret.bits.push_back(bits[i] * i_val.bits[j]);
-            }
+            if (i_val.bits[j] == 0)
+                continue;
+            ret.bits[i + j] += 1; // bits[i]*i_val.bits[j] is 1 if both 1
         }
     }
-    for (deque<int>::size_type i = 0; i < ret.bits.size(); ++i)
+
+    // Normalize carries base 2
+    int carry = 0;
+    for (size_t i = 0; i < ret.bits.size(); ++i)
     {
-        if (i + 1 < ret.bits.size())
-        {
-            ret.bits[i + 1] += ret.bits[i] / 2;
-        }
-        else if (ret.bits[i] >= 10)
-        {
-            ret.bits.push_back(ret.bits[i] / 2);
-        }
-        else
-        {
-            break;
-        }
-        ret.bits[i] %= 2;
+        int64_t v = ret.bits[i] + carry;
+        ret.bits[i] = v & 1; // v % 2
+        carry = (v >> 1);    // v / 2
     }
+    while (carry > 0)
+    {
+        ret.bits.push_back(carry & 1);
+        carry >>= 1;
+    }
+
     ret.trim();
     *this = ret;
     return *this;
@@ -265,7 +271,7 @@ BigIntMod &BigIntMod::operator/=(const BigIntMod &i_val)
             *this -= divider;
             BigIntMod tmp = pow(TWO, cnt);
             ret += tmp;
-            divider *= TWO;
+            divider = mul2(divider);
             cnt++;
         }
         else
@@ -310,50 +316,31 @@ bool operator>=(const BigIntMod &lhs, const BigIntMod &rhs)
 {
     return !(lhs < rhs);
 }
-
 bool operator<(const BigIntMod &lhs, const BigIntMod &rhs)
 {
     if (lhs.sign_ == false && rhs.sign_ == true)
         return true;
     if (lhs.sign_ == true && rhs.sign_ == false)
         return false;
-    if (lhs.sign_)
+
+    // same sign
+    bool positive = lhs.sign_;
+
+    if (lhs.bits.size() != rhs.bits.size())
     {
-        if (lhs.bits.size() < rhs.bits.size())
-            return true;
-        else if (lhs.bits.size() > rhs.bits.size())
-            return false;
+        if (positive)
+            return lhs.bits.size() < rhs.bits.size();
+        else
+            return lhs.bits.size() > rhs.bits.size();
     }
-    else
-    {
-        if (lhs.bits.size() < rhs.bits.size())
-            return false;
-        else if (lhs.bits.size() > rhs.bits.size())
-            return true;
-    }
-    for (deque<int64_t>::size_type i = lhs.bits.size() - 1; i > 0; --i)
+
+    // compare from most significant bit down to 0
+    for (size_t i = lhs.bits.size(); i-- > 0;)
     {
         if (lhs.bits[i] < rhs.bits[i])
-        {
-            if (lhs.sign_)
-                return true;
-            else
-                return false;
-        }
-        else if (lhs.bits[i] > rhs.bits[i])
-        {
-            if (lhs.sign_)
-                return false;
-            else
-                return true;
-        }
-    }
-    if (lhs.bits[0] < rhs.bits[0])
-    {
-        if (lhs.sign_)
-            return true;
-        else
-            return false;
+            return positive ? true : false;
+        if (lhs.bits[i] > rhs.bits[i])
+            return positive ? false : true;
     }
     return false;
 }
@@ -491,28 +478,42 @@ BigIntMod mulMod(const BigIntMod &a, const BigIntMod &b, const BigIntMod &m)
 {
     BigIntMod x = a % m;
     BigIntMod y = b % m;
-    BigIntMod P = (string) "0";
-    if (y.bits[0] == 1)
-        P = x;
-    for (size_t i = 1; i < y.bits.size(); ++i)
+    BigIntMod res = ZERO;
+
+     for (size_t i = 0; i < y.bits.size(); ++i)
     {
-        x = mul2Mod(x, m);
         if (y.bits[i] == 1)
-            P = addMod(P, x, m);
+        {
+            // res = (res + x) % m  (use direct addition then conditional reduce)
+            res += x;
+            if (res >= m)
+                res -= m;
+        }
+        // x = (x << 1) % m
+        // implement shift-left 1 bit without full division
+        // shift bits
+        x.bits.push_front(0); // multiply by 2
+        x.trim();
+        if (x >= m)
+            x -= m;
     }
-    return P;
+    return res;
 }
 
 BigIntMod powMod(const BigIntMod &base, const BigIntMod &exponent, const BigIntMod &m)
 {
     BigIntMod x = base % m;
     BigIntMod a = exponent;
-    BigIntMod y = (string) "1";
-    for (size_t i = a.bits.size() - 1; i >= 0; --i)
+    BigIntMod y = ONE;
+
+    for (size_t i = a.bits.size(); i-- > 0;)
     {
+        // square
         y = mulMod(y, y, m);
         if (a.bits[i] == 1)
+        {
             y = mulMod(y, x, m);
+        }
     }
     return y;
 }
@@ -555,22 +556,28 @@ BigIntMod pow(const BigIntMod &i_val, const BigIntMod &i_exp)
     return ret;
 }
 
-BigIntMod pow(const BigIntMod &i_val, const int i_exp)
+BigIntMod pow(const BigIntMod &base, int exponent)
 {
-    if (i_exp < 0)
+    if (exponent < 0)
         throw std::invalid_argument("Negative exponent not supported");
-
-    BigIntMod exp;
-    int n = i_exp;
-    while (n > 0)
+    BigIntMod result = ONE;
+    BigIntMod b = base;
+    int e = exponent;
+    while (e > 0)
     {
-        exp.bits.push_back(n & 0xF);
-        n >>= 4;
+        if (e & 1)
+            result *= b;
+        e >>= 1;
+        if (e)
+            b *= b;
     }
-    if (exp.bits.empty())
-        exp.bits.push_back(0);
+    return result;
+}
 
-    exp.sign_ = true;
-
-    return pow(i_val, exp);
+BigIntMod mul2(const BigIntMod &i)
+{
+    BigIntMod result = i;
+    result.bits.push_front(0);
+    result.trim();
+    return result;
 }

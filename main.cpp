@@ -1,26 +1,40 @@
 #include <iostream>
 #include "BigIntMod.h"
 #include "RSA.h"
+#include <filesystem>
+#include <vector>
+#include <fstream>
+#include <algorithm>
+namespace fs = std::filesystem;
 using namespace std;
+
 int main()
 {
-    BigIntMod a, b, c;
-    a = "D1";
-    b = "8";
-    // c = "2";
-    RSA::EGCDResult res = RSA::extendedEuclidean(a, b);
-    cout << "gcd: " << res.gcd << endl;
-    cout << "x: " << res.x << endl;
-    cout << "y: " << res.y << endl;
-
-    cout << "Check: " << a * res.x + b * res.y << endl;
-
-    cout << "a + b = " << (a + b) << endl;
-    cout << "a - b = " << (a - b) << endl;
-    cout << "a * b = " << (a * b) << endl;
-    cout << "a % b = " << (a % b) << endl;
-    cout << "a / b = " << (a / b) << endl;
-    cout << "b % a = " << (b % a) << endl;
-    cout << "a*2 = " << mul2Mod(a, c) << endl;
-    return 0;
+    while (true)
+    {
+        cout << "Enter a number to test for primality (or 'exit' to quit): ";
+        string input;
+        cin >> input;
+        if (input == "exit")
+        {
+            break;
+        }
+        try
+        {
+            BigIntMod num(input);
+            bool is_prime = RSA::primeTest(num);
+            if (is_prime)
+            {
+                cout << input << ": 1" << endl;
+            }
+            else
+            {
+                cout << input << ": 0" << endl;
+            }
+        }
+        catch (const std::invalid_argument &e)
+        {
+            cout << "Invalid input: " << e.what() << endl;
+        }
+    }
 }
