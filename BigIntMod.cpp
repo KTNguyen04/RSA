@@ -133,6 +133,23 @@ BigIntMod &BigIntMod::operator+=(const BigIntMod &i_val)
 BigIntMod &BigIntMod::operator-=(const BigIntMod &i_val)
 {
     BigIntMod tmp;
+
+    if (sign_ && !i_val.sign_)
+    {
+        BigIntMod tmp2(i_val);
+        tmp2.sign_ = true;
+        *this += tmp2;
+        return *this;
+    }
+    if (!sign_ && i_val.sign_)
+    {
+        BigIntMod tmp2(*this);
+        tmp2.sign_ = true;
+        *this = tmp2 + i_val;
+        this->sign_ = false;
+        return *this;
+    }
+
     if (*this < i_val)
     {
         tmp = *this;

@@ -18,3 +18,14 @@ g++ -g ./main.cpp ./BigIntMod.cpp -o main
 ## References
 
 https://github.com/maemual/BigInt
+
+## Number format
+
+| Format          | Example 1                | Example 2                |
+| --------------- | ------------------------ | ------------------------ |
+| Hex (normal)    | `0x3A1F`                 | `3A1F`                   |
+| Binary (normal) | `0b 0011 1010 0001 1111` | `0011 1010 0001 1111`    |
+| Per nibble      | `3, A, 1, F`             | `0011, 1010, 0001, 1111` |
+| Input           | `F1A3`                   | —                        |
+| Stored in deque | `1111 1000 0101 1100`    | —                        |
+| Output          | `F1A3`                   | —                        |
