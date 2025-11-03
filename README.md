@@ -11,7 +11,7 @@ A C++ library for manipulating large base-2 integers (exceeding 64 bits), design
 
 ```sh
 g++ -g ./main.cpp ./BigIntMod.cpp ./RSA.cpp  -o main
-./main
+./main <test-file-name> <output-file-name>
 ```
 
 ## References
