@@ -8,33 +8,32 @@
 namespace fs = std::filesystem;
 using namespace std;
 
-int main()
+int main(int argc, char *argv[])
 {
-    while (true)
+    if (argc != 3)
     {
-        cout << "Enter a number to test for primality (or 'exit' to quit): ";
-        string input;
-        cin >> input;
-        if (input == "exit")
-        {
-            break;
-        }
-        try
-        {
-            BigIntMod num(input);
-            bool is_prime = RSA::primeTest(num);
-            if (is_prime)
-            {
-                cout << input << ": 1" << endl;
-            }
-            else
-            {
-                cout << input << ": 0" << endl;
-            }
-        }
-        catch (const std::invalid_argument &e)
-        {
-            cout << "Invalid input: " << e.what() << endl;
-        }
+        cerr << "Usage: " << argv[0] << " <input_file> <output_file>" << endl;
+        return 1;
     }
+    string input_file = argv[1];
+    string output_file = argv[2];
+    ifstream infile(input_file);
+    if (!infile)
+    {
+        cerr << "Error opening input file: " << input_file << endl;
+        return 1;
+    }
+    BigIntMod N, k, x;
+    infile >> N >> k >> x;
+    infile.close();
+    BigIntMod d = RSA::encrypt_decrypt(x, k, N);
+    ofstream outfile(output_file);
+    if (!outfile)
+    {
+        cerr << "Error opening output file: " << output_file << endl;
+        return 1;
+    }
+    outfile << d << endl;
+    outfile.close();
+    return 0;
 }

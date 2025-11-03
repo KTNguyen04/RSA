@@ -32,18 +32,31 @@ RSA::EGCDResult RSA::extendedEuclidean(const BigIntMod &a, const BigIntMod &b)
     return RSA::EGCDResult{A, x0, y0};
 }
 
-BigIntMod RSA::inverseMod(const BigIntMod &a, const BigIntMod &m)
+BigIntMod RSA::keyGen(const BigIntMod &p, const BigIntMod &q, const BigIntMod &e)
 {
-    EGCDResult res = extendedEuclidean(a, m);
+
+    BigIntMod phi = (p - ONE) * (q - ONE);
+    BigIntMod E = e % phi;
+
+    if (E.bits[0] == 0 && phi.bits[0] == 0)
+    {
+        return BigIntMod("-1");
+    }
+    if (gcd(E, phi) != ONE)
+    {
+        return BigIntMod("-1");
+    }
+
+    EGCDResult res = extendedEuclidean(E, phi);
     if (res.gcd != ONE)
     {
-        throw std::invalid_argument("Inverse does not exist");
+        return BigIntMod("-1");
     }
     else
     {
-        BigIntMod result = res.x % m;
+        BigIntMod result = res.x % phi;
         if (result < ZERO)
-            result += m;
+            result += phi;
         return result;
     }
 }
@@ -103,6 +116,47 @@ bool RSA::primeTest(const BigIntMod &n)
     }
 
     return true;
+}
+
+BigIntMod RSA::gcd(const BigIntMod &a, const BigIntMod &b)
+{
+    BigIntMod g = ONE;
+    BigIntMod A = a;
+    BigIntMod B = b;
+    while (B.bits[0] == 0 && A.bits[0] == 0) // both even
+    {
+        A.bits.pop_front();
+        B.bits.pop_front();
+        g = mul2(g);
+    }
+    while (!A.isZero())
+    {
+        while (A.bits[0] == 0) // A even
+        {
+            A.bits.pop_front();
+        }
+        while (B.bits[0] == 0) // B even
+        {
+            B.bits.pop_front();
+        }
+        if (A >= B)
+        {
+            A = A - B;
+            A.trim();
+        }
+        else
+        {
+            B = B - A;
+            B.trim();
+        }
+    }
+    g = mulMod(g, B, b);
+    return g;
+}
+
+BigIntMod RSA::encrypt_decrypt(const BigIntMod &x, const BigIntMod &k, const BigIntMod &n)
+{
+    return powMod(x, k, n);
 }
 
 string RSA::pToHex(int p)
